@@ -34,7 +34,7 @@ public class Processor {
 
         trackingStatesKTable
                 .toStream()
-                .processValues(() -> new TimestampAwareStoreCleaner<>(punctuationInterval, maxAgeDuration, "leftTopicTable", 30000L), "leftTopicTable")
+                .processValues(() -> new TimestampAwareStoreCleaner2<>(punctuationInterval, maxAgeDuration, "leftTopicTable", 30000L), "leftTopicTable")
                 .foreach((k, v) -> {});
 
         trackingStatesKTable.toStream().to("outputTopic", Produced.with(stringSerde, stringSerde));
