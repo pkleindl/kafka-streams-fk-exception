@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -51,7 +50,7 @@ class StateStoreDelayTest {
     static void setup() {
 
         StreamsBuilder builder = new StreamsBuilder();
-        new Processor2().process(builder);
+        new Processor().process(builder);
 
         Properties props = new Properties();
         props.put(StreamsConfig.APPLICATION_ID_CONFIG, "fk-join-invalid-partition-it-" + UUID.randomUUID());
@@ -62,8 +61,8 @@ class StateStoreDelayTest {
         props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
 
         AdminClient adminClient = AdminClient.create(props);
-        List<NewTopic> topics = List.of(new NewTopic("leftTopic",6, (short) 1),
-                new NewTopic("outputTopic",6, (short) 1)
+        List<NewTopic> topics = List.of(new NewTopic("leftTopic",3, (short) 1),
+                new NewTopic("outputTopic",3, (short) 1)
                 );
         adminClient.createTopics(topics);
 

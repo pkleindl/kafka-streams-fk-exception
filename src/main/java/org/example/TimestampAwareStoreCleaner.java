@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Date;
 import java.util.function.BiPredicate;
 
 public class TimestampAwareStoreCleaner<K, V> implements FixedKeyProcessor<K, V, V> {
@@ -105,7 +106,7 @@ public class TimestampAwareStoreCleaner<K, V> implements FixedKeyProcessor<K, V,
 
         try {
             log.trace("Going to sleep");
-            Thread.sleep(Duration.ofSeconds(1).toMillis());
+            Thread.sleep(Duration.ofSeconds(5).toMillis());
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
