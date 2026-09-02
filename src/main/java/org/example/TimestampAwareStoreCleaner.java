@@ -103,12 +103,17 @@ public class TimestampAwareStoreCleaner<K, V> implements FixedKeyProcessor<K, V,
             log.trace("Starting a new iteration of the store {}", storeName);
         }
 
-
+        try {
+            log.trace("Going to sleep");
+            Thread.sleep(Duration.ofSeconds(1).toMillis());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         while (storeRecords.hasNext()) {
             final KeyValue<Object, ValueAndTimestamp<Object>> rec = storeRecords.next();
             long elapsedPunctuationTime = System.currentTimeMillis() - actualStartTime;
 
-            log.trace("elapsed time: {}, maxTime: {}", elapsedPunctuationTime, maxPunctuateMs);
+            //log.trace("elapsed time: {}, maxTime: {}", elapsedPunctuationTime, maxPunctuateMs);
             if (elapsedPunctuationTime > this.maxPunctuateMs) {
                 log.trace("elapsed {} ms for punctuation of store {}, which is more than the allowed {} ms. Pausing iteration.", elapsedPunctuationTime, storeName, maxPunctuateMs);
                 break;

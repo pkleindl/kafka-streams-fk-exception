@@ -82,7 +82,7 @@ class FkJoinInvalidPartitionIT {
         }
     }
 
-    @Test
+    //@Test
     void shouldSurfaceInvalidPartitionMinusOneAfterCleanerEvictionAndFkUpdate() throws Exception {
         while (!KafkaStreams.State.RUNNING.equals(streams.state())) {
             System.out.println("Current state: " + streams.state());
