@@ -14,7 +14,6 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Container;
@@ -23,14 +22,13 @@ import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.nio.file.Files;
-import java.text.DateFormat;
 import java.time.Duration;
-import java.util.*;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class StateStoreDelayTest {
@@ -42,7 +40,7 @@ class StateStoreDelayTest {
     static AtomicReference<Throwable> uncaught = new AtomicReference<>();
     static CountDownLatch errorLatch = new CountDownLatch(1);
 
-    private static Logger logger = LoggerFactory.getLogger(StateStoreDelayTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(StateStoreDelayTest.class);
 
     @BeforeAll
     static void setup() {
@@ -59,9 +57,9 @@ class StateStoreDelayTest {
         props.put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0);
 
         AdminClient adminClient = AdminClient.create(props);
-        List<NewTopic> topics = List.of(new NewTopic("leftTopic",3, (short) 1),
-                new NewTopic("outputTopic",3, (short) 1)
-                );
+        List<NewTopic> topics = List.of(new NewTopic("leftTopic", 3, (short) 1),
+                new NewTopic("outputTopic", 3, (short) 1)
+        );
         adminClient.createTopics(topics);
 
         streams = new KafkaStreams(builder.build(), props);
@@ -102,20 +100,18 @@ class StateStoreDelayTest {
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
             for (int i = 1; i <= 360; i++) {
-                long oldTs = System.currentTimeMillis() - Duration.ofDays(random.nextInt(0,20)).toMillis();
+                long oldTs = System.currentTimeMillis() - Duration.ofDays(random.nextInt(0, 20)).toMillis();
                 ProducerRecord<String, String> record = new ProducerRecord<>(
                         "leftTopic",
                         null,
                         oldTs,
                         UUID.randomUUID().toString(),
-                        "someValue-" + StringUtils.leftPad(String.valueOf(i),4,'0') + " " + (new java.util.Date(oldTs))
+                        "someValue-" + StringUtils.leftPad(String.valueOf(i), 4, '0') + " " + (new java.util.Date(oldTs))
                 );
                 logger.info("Producing message: {} {}", i, record);
-            producer.send(record).get();
+                producer.send(record).get();
 
-            //producer.flush();
-
-            Thread.sleep(Duration.ofSeconds(1).toMillis());
+                Thread.sleep(Duration.ofSeconds(1).toMillis());
             }
         }
 

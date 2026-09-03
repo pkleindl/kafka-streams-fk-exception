@@ -68,8 +68,8 @@ public class TimestampAwareStoreCleaner3<K, V> implements FixedKeyProcessor<K, V
     private FixedKeyProcessorContext<K, V> context;
     private TimestampedKeyValueStore<Object, Object> store;
     private Cancellable cancellablePunctuator;
-    //private KeyValueIterator<Object, ValueAndTimestamp<Object>> storeRecords;
     private boolean isRunning;
+    private final Random random = new Random();
 
     @Override
     public void init(final FixedKeyProcessorContext<K, V> context) {
@@ -92,7 +92,6 @@ public class TimestampAwareStoreCleaner3<K, V> implements FixedKeyProcessor<K, V
 
     @Override
     public void close() {
-        //storeRecords.close();
     }
 
     public Cancellable getCancellablePunctuator() {
@@ -101,28 +100,26 @@ public class TimestampAwareStoreCleaner3<K, V> implements FixedKeyProcessor<K, V
 
     private class Updater extends Thread {
 
-
         @Override
         public void run() {
             isRunning = true;
-            //store.flush(); //Deprecated, really relevant?
-            Random random = new Random();
-            var actualStartTime = System.currentTimeMillis();
-            log.trace("checking state store {} for records to remove older than {} at {} or actualStarTime {}", storeName, maxAge, Date.from(Instant.now()), actualStartTime);
 
-            log.trace("Starting a new iteration of the store {}", storeName);
+            var actualStartTime = System.currentTimeMillis();
+            log.trace("checking state store {} for records to remove older than {} at {} or actualStartTime {}", storeName, maxAge, Date.from(Instant.now()), actualStartTime);
+
             try (KeyValueIterator<Object, ValueAndTimestamp<Object>> storeRecords = store.range(UUID.randomUUID().toString(), null)) {
                 //Note: with UUIDv7 this could start at a certain timestamp, maybe even with a reverse range scan
 
                 while (store.isOpen() && storeRecords.hasNext()) {
-                    final KeyValue<Object, ValueAndTimestamp<Object>> rec = storeRecords.next();
-                    long elapsedPunctuationTime = System.currentTimeMillis() - actualStartTime;
 
+                    long elapsedPunctuationTime = System.currentTimeMillis() - actualStartTime;
                     log.trace("elapsed time: {}, maxTime: {}", elapsedPunctuationTime, maxPunctuateMs);
                     if (elapsedPunctuationTime > maxPunctuateMs) {
                         log.trace("elapsed {} ms for punctuation of store {}, which is more than the allowed {} ms. Pausing iteration.", elapsedPunctuationTime, storeName, maxPunctuateMs);
                         break;
                     }
+
+                    final KeyValue<Object, ValueAndTimestamp<Object>> rec = storeRecords.next();
 
                     boolean shouldDelete = deleteIfTrue.test(rec.value.timestamp(), actualStartTime);
                     log.trace("Checking record: {} shouldDelete {}", rec, shouldDelete);
@@ -139,9 +136,11 @@ public class TimestampAwareStoreCleaner3<K, V> implements FixedKeyProcessor<K, V
                         throw new RuntimeException(e);
                     }
                 }
-                isRunning = false;
+
             } catch (InvalidStateStoreException ex) {
                 log.trace("Store {} or Iterator has been closed", storeName);
+            } finally {
+                isRunning = false;
             }
 
             long elapsedPunctuationTime = System.currentTimeMillis() - actualStartTime;
