@@ -1,6 +1,7 @@
 package org.example;
 
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -22,12 +23,9 @@ import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.nio.file.Files;
+import java.text.DateFormat;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -84,7 +82,7 @@ class StateStoreDelayTest {
     }
 
     @Test
-    void shouldSurfaceInvalidPartitionMinusOneAfterCleanerEvictionAndFkUpdate() throws Exception {
+    void shouldCleanOldRecordsFromStore() throws Exception {
         while (!KafkaStreams.State.RUNNING.equals(streams.state())) {
             System.out.println("Current state: " + streams.state());
             Thread.sleep(Duration.ofSeconds(3));
@@ -98,22 +96,25 @@ class StateStoreDelayTest {
         producerProps.put("key.serializer", StringSerializer.class.getName());
         producerProps.put("value.serializer", StringSerializer.class.getName());
 
-        //long oldTs = System.currentTimeMillis() - Duration.ofDays(2).toMillis();
+        Random random = new Random();
+
         System.out.println(KAFKA.getBootstrapServers());
 
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
             for (int i = 1; i <= 360; i++) {
-            // Left side tracking state
-            producer.send(new ProducerRecord<>(
-                    "leftTopic",
-                    null,
-                    System.currentTimeMillis(),
-                    "someKey-"+ i,
-                    "someValue-" + i + " " + Date.from(Instant.now())
-            )).get();
+                long oldTs = System.currentTimeMillis() - Duration.ofDays(random.nextInt(0,20)).toMillis();
+                ProducerRecord<String, String> record = new ProducerRecord<>(
+                        "leftTopic",
+                        null,
+                        oldTs,
+                        UUID.randomUUID().toString(),
+                        "someValue-" + StringUtils.leftPad(String.valueOf(i),4,'0') + " " + (new java.util.Date(oldTs))
+                );
+                logger.info("Producing message: {} {}", i, record);
+            producer.send(record).get();
 
             //producer.flush();
-            logger.info("Produced message: {}", i);
+
             Thread.sleep(Duration.ofSeconds(1).toMillis());
             }
         }

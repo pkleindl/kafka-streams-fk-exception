@@ -20,7 +20,7 @@ public class Processor {
     public void process(StreamsBuilder builder) {
 
         var punctuationInterval = Duration.ofSeconds(30);
-        var maxAgeDuration = Duration.ofDays(1);
+        var maxAgeDuration = Duration.ofDays(10);
 
         final Serde<String> stringSerde = Serdes.String();
 
@@ -34,7 +34,7 @@ public class Processor {
 
         trackingStatesKTable
                 .toStream()
-                .processValues(() -> new TimestampAwareStoreCleaner2<>(punctuationInterval, maxAgeDuration, "leftTopicTable", 30000L), "leftTopicTable")
+                .processValues(() -> new TimestampAwareStoreCleaner3<>(punctuationInterval, maxAgeDuration, "leftTopicTable", 10000L), "leftTopicTable")
                 .foreach((k, v) -> {});
 
         trackingStatesKTable.toStream().to("outputTopic", Produced.with(stringSerde, stringSerde));
